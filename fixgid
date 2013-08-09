@@ -1,0 +1,31 @@
+#!/bin/bash
+USERUID=$1
+OLDGID=$2
+NEWGID=$3
+
+echo $USERUID $OLDGID > /tmp/fixgidlog.$$
+date >> /tmp/fixgidlog.$$
+
+if [ $# -ne 3 ]; then
+	echo "Usage: fixgid <uid> <oldgid> <newgid>"
+	echo "Changes the group ownership of all files owned by user=uid"
+	exit 1
+fi
+
+if echo $OSTYPE | grep solaris > /dev/null
+then
+	for x in `grep '^[^#].*ufs' "/etc/vfstab" | awk '{print$3}'` `zfs list | awk '{print $5}' | sed -n '/^\/.*/p'`
+	do
+	find "$x" -mount -user $USERUID -group $OLDGID -exec chgrp $NEWGID {} \;
+	done
+elif echo $OSTYPE | grep linux > /dev/null
+then
+	for x in `grep '^[^#].*ext3' "/etc/fstab" | awk '{print$2}'`
+	do
+	find "$x" -mount -user $USERUID -group $OLDGID -exec chgrp $NEWGID {} \;
+	done
+fi
+
+
+date >> /tmp/fixuidlog.$$
+#find "$x" -mount -user $OLDUID -exec file {} \;
