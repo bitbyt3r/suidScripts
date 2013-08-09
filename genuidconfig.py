@@ -4,6 +4,7 @@ import os, stat, sys
 OUTPUT_FILE = "./setuidconfig.py"
 
 sidFiles = {}
+skipDir = []
 
 def checkFile(file):
   try:
@@ -15,8 +16,16 @@ def checkFile(file):
 
 def checkDir(arg, dirname, names):
   print "Checking:", dirname
-  for i in names:
-    checkFile(os.path.join(dirname, i))
+  for i in skipDir:
+    if i in dirname:
+      print "Skipping", dirname, "Parent skipped."
+      return
+  if os.stat(dirname).st_dev == rootdev:
+    for i in names:
+      checkFile(os.path.join(dirname, i))
+  else:
+    skipDir.append(dirname)
+    print "Skipping", dirname, "Not on root device."
 
 def makeConfig(sidFiles):
   with open(OUTPUT_FILE, "w") as output:
@@ -42,5 +51,6 @@ def makeConfig(sidFiles):
         output.write("setgid,\n")
     output.write("\t}\n")
 
+rootdev = os.stat("/").st_dev
 os.path.walk("/", checkDir, None)
 makeConfig(sidFiles)
